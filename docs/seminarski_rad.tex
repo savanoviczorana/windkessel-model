@@ -1,0 +1,614 @@
+\documentclass[12pt,a4paper]{article}
+
+% ── Encoding and language ──
+\usepackage[utf8]{inputenc}
+\usepackage[T2A,T1]{fontenc}
+\usepackage[serbian]{babel}
+
+% ── Math ──
+\usepackage{amsmath,amssymb,amsfonts}
+
+% ── Graphics and layout ──
+\usepackage{graphicx}
+\usepackage[margin=2.5cm]{geometry}
+\usepackage{float}
+\usepackage{caption}
+\usepackage{subcaption}
+
+% ── Tables ──
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{colortbl}
+\usepackage{xcolor}
+
+% ── Code listings ──
+\usepackage{listings}
+
+% ── Hyperlinks ──
+\usepackage{hyperref}
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue!70!black,
+    urlcolor=blue!70!black,
+    citecolor=blue!70!black
+}
+
+% ── Misc ──
+\usepackage{parskip}
+\usepackage{indentfirst}
+\setlength{\parindent}{0.7cm}
+
+% ── Colors ──
+\definecolor{headerblue}{HTML}{2E75B6}
+\definecolor{rowalt}{HTML}{F5F8FC}
+\definecolor{codebg}{HTML}{F5F5F5}
+
+% ── Code style ──
+\lstset{
+    language=Python,
+    basicstyle=\ttfamily\small,
+    backgroundcolor=\color{codebg},
+    frame=single,
+    framerule=0.5pt,
+    rulecolor=\color{gray!50},
+    numbers=left,
+    numberstyle=\tiny\color{gray},
+    numbersep=8pt,
+    breaklines=true,
+    showstringspaces=false,
+    tabsize=4,
+    keywordstyle=\color{blue!70!black}\bfseries,
+    commentstyle=\color{green!50!black}\itshape,
+    stringstyle=\color{red!70!black},
+    captionpos=b
+}
+
+% ══════════════════════════════════════════════════════════════
+\begin{document}
+
+% ── NASLOVNA STRANA ──
+\begin{titlepage}
+    \centering
+    
+    \vspace*{1cm}
+    
+    {\large Univerzitet u Novom Sadu}\\[0.3cm]
+    {\large Prirodno-matematički fakultet}\\[0.2cm]
+    {\large Departman za matematiku i informatiku}
+    
+    \vspace{3cm}
+    
+    {\Large Seminarski rad}
+    
+    \vspace{1cm}
+    
+    {\LARGE \bfseries Matematičko modelovanje arterijskog pritiska\\[0.3cm]
+    (Windkessel model) korišćenjem diferencijalnih jednačina}
+    
+    \vfill
+    
+    \begin{minipage}[t]{0.45\textwidth}
+        \raggedright
+        \textbf{Mentor}\\
+        prof.\ dr Jelena Aleksić
+    \end{minipage}
+    \hfill
+    \begin{minipage}[t]{0.45\textwidth}
+        \raggedleft
+        \textbf{Student}\\
+        Zorana Savanović
+    \end{minipage}
+    
+    \vspace{2cm}
+    
+\end{titlepage}
+
+% ── SADRŽAJ ──
+\tableofcontents
+\newpage
+
+% ══════════════════════════════════════════════════════════════
+% 1. UVOD
+% ══════════════════════════════════════════════════════════════
+\section{Uvod}
+
+U ovom radu bavimo se matematičkim modelovanjem rada kardiovaskularnog sistema, tačnije dinamike arterijskog pritiska. Kao osnovu koristimo Windkessel model, koji na jednostavan način povezuje fiziološke parametre poput elastičnosti arterija, perifernog otpora i ulaznog protoka krvi iz srca.
+
+Cilj je da diferencijalnom jednačinom opišemo promene arterijskog pritiska tokom srčanog ciklusa, analiziramo tip rešenja i očekivano ponašanje sistema, kao i da rezultate numeričkih simulacija uporedimo sa analitičkim rešenjima i fiziološkim vrednostima (sistolni i dijastolni pritisak).
+
+Srce i krvni sudovi čine osnovu kardiovaskularnog sistema, čija je glavna uloga da obezbedi stalno snabdevanje tkiva kiseonikom i hranjivim materijama. Jedan od najvažnijih pokazatelja rada ovog sistema jeste arterijski pritisak, koji se stalno menja tokom srčanog ciklusa, u fazama sistole i dijastole. Iako je stvarna fiziologija složena, moguće je napraviti pojednostavljene matematičke modele koji dobro opisuju osnovne karakteristike dinamike krvnog pritiska.
+
+\subsection{Ključni medicinski pojmovi}
+
+\textbf{Srce} je šuplji mišićni organ koji pumpa krv kroz krvne sudove. Sastoji se od četiri šupljine: dve pretkomore (atria) i dve komore (ventrikuli). Rad srca regulišu električni impulsi koji nastaju u sinoatrijalnom (SA) čvoru i omogućavaju koordinisanu kontrakciju pretkomora i komora.
+
+% TODO: Ovde možeš ubaciti sliku srca iz originala
+% \begin{figure}[H]
+%     \centering
+%     \includegraphics[width=0.6\textwidth]{slike/srce.png}
+%     \caption{Unutrašnja struktura srca}
+%     \label{fig:srce}
+% \end{figure}
+
+\textbf{Arterije} su krvni sudovi koji odvode krv iz srca ka ostalim delovima tela. Sastoje se od slojeva kolagena, elastina i glatkih mišića. Glavni deo arterijskog sistema je aorta, najveća arterija, koja se grana u manje arterije.
+
+\textbf{Elastičnost arterija} je sposobnost arterija da se rastegnu i skupljaju, što je ključno za regulisanje krvnog pritiska i protoka krvi. Ovaj pojam je centralan za Windkessel model koji ćemo analizirati.
+
+\textbf{Arterijski pritisak} je sila kojom krv pritiska zidove arterija dok srce pumpa krv kroz telo. Njega zajedno određuju minutni volumen srca i periferni otpor. Meri se u milimetrima živinog stuba (mmHg).
+
+\textbf{Minutni volumen srca} ($MV$) je količina krvi koju leva komora izbaci u aortu za jedan minut. Računa se kao:
+\begin{equation}
+    MV = SF \cdot VSV
+\end{equation}
+gde je $SF$ srčana frekvencija (otkucaji/min), a $VSV$ udarni volumen (mL/otkucaj). Kod odrasle osobe u mirovanju, $MV$ iznosi 4,5--6,5~L/min, odnosno 75--108~mL/s.
+
+\textbf{Periferni otpor} ($TPR$) predstavlja otpor koji krvni sudovi stvaraju protoku krvi. Izračunava se kao:
+\begin{equation}
+    TPR = \frac{MAP}{MV}
+\end{equation}
+gde je $MAP$ srednji arterijski pritisak. Jedinica perifernog otpora je mmHg$\cdot$s/mL.
+
+\textbf{Sistola} je faza srčane aktivnosti u kojoj se komore kontrahuju i izbacuju krv u arterije. \textbf{Dijastola} je faza u kojoj se komore opuštaju i pune krvlju. Arterijski pritisak dostiže maksimalnu vrednost tokom sistole (sistolni pritisak, tipično $\sim$120~mmHg) i minimalnu tokom dijastole (dijastolni pritisak, tipično $\sim$80~mmHg).
+
+
+% ══════════════════════════════════════════════════════════════
+% 2. OSNOVE MATEMATIČKOG MODELIRANJA
+% ══════════════════════════════════════════════════════════════
+\section{Osnove matematičkog modeliranja}
+
+% Primedba 2: praksa prethodila teoriji
+Matematičko modeliranje dinamičkih sistema ima dugu istoriju koja seže do prvih pokušaja opisivanja fizičkih procesa jednačinama. Značajno je naglasiti da su konkretni modeli istorijski prethodili formalnoj teoriji dinamičkih sistema --- praktični problemi u fizici, biologiji i medicini motivisali su razvoj matematičkog aparata, a ne obrnuto. Windkessel model, koji je 1899.\ godine predložio Otto Frank, nastao je kao pokušaj da se objasni dinamika arterijskog pritiska, dok su opšti rezultati iz teorije diferencijalnih jednačina i dinamičkih sistema sistematizovani tek kasnije.
+
+U okviru modeliranja, promenljiva veličina označava se kao $v(t)$, dok se njene promene opisuju prvim izvodom $v'(t)$. Odnos između funkcije i njenih izvoda izražava se diferencijalnim jednačinama. Za rešavanje tih jednačina neophodno je zadati poznate parametre (koeficijente) i početne uslove.
+
+\subsection{Faze modeliranja}
+
+% Primedba 3: jasno definisane faze
+\textbf{1.\ Formiranje modela} --- polazi se od fizičkih zakona, logičkih zaključaka i intuitivnih pretpostavki kako bi se definisala matematička osnova sistema. Ova faza obuhvata celokupan proces izvođenja diferencijalne jednačine koja opisuje sistem, uključujući identifikaciju relevantnih veličina, uspostavljanje veza među njima i konačno zapisivanje jednačine modela. Sve dok izvodimo diferencijalnu jednačinu, nalazimo se u prvom koraku.
+
+\textbf{2.\ Analiza modela} --- počinje tek kada je diferencijalna jednačina formirana. Obuhvata rešavanje matematičkog problema (nalaženje opšteg i partikularnog rešenja), kvalitativnu analizu (ispitivanje stabilnosti, oscilacija, tendencije ka ravnoteži) i numeričke simulacije pomoću alata poput Pythona, MATLAB-a ili R-a.
+
+\textbf{3.\ Provera modela} --- dobijeni rezultati se porede sa eksperimentalnim ili kliničkim podacima radi potvrđivanja tačnosti i pouzdanosti modela. Ukoliko se uoče odstupanja, parametri se prilagođavaju ili se model proširuje.
+
+Jedan od najpoznatijih primera modeliranja dinamičkih sistema su Lotka-Volterove jednačine, koje opisuju interakcije predator--plen u ekologiji. Ovi modeli nalaze primenu i u ekonomiji, komunikologiji i drugim naukama.
+
+
+% ══════════════════════════════════════════════════════════════
+% 3. WINDKESSEL MODEL
+% ══════════════════════════════════════════════════════════════
+\section{Windkessel model}
+
+\textit{Windkessel} (nem.\ ``vazdušna komora'') efekat odnosi se na fenomen gde se deo energije oslobođene srčanom kontrakcijom tokom sistole skladišti u rastegljivim velikim arterijama, omogućavajući kontinuirani protok krvi tokom dijastole kroz elastični trzaj ovih krvnih sudova. Rezultat je protok krvi koji je kontinuiraniji i pritisak koji ne pada naglo na nulu između otkucaja.
+
+% TODO: Ovde možeš ubaciti sliku Windkessel komore iz originala
+% \begin{figure}[H]
+%     \centering
+%     \includegraphics[width=0.6\textwidth]{slike/windkessel_chamber.png}
+%     \caption{Šematski prikaz Windkessel efekta}
+%     \label{fig:wk_chamber}
+% \end{figure}
+
+Windkessel modeli funkcionišu na osnovu analogije između krvotoka i električnih kola. Elastičnost arterija posmatra se kao kapacitivnost (kondenzator skladišti naboj, arterije skladište krv), otpor proticanju krvi kroz periferne sudove kao električni otpor, dok se srce tretira kao izvor struje (protoka).
+
+% Primedba 1: tabela parametara sa jedinicama
+\subsection{Parametri modela i jedinice}
+
+U sledećoj tabeli sumirani su svi parametri koji se koriste u Windkessel modelima, njihovo fiziološko značenje, jedinice i tipične vrednosti za odraslu osobu u mirovanju.
+
+\begin{table}[H]
+    \centering
+    \caption{Parametri Windkessel modela sa jedinicama i tipičnim vrednostima}
+    \label{tab:parametri}
+    \small
+    \begin{tabular}{l c p{5cm} c c}
+        \toprule
+        \rowcolor{headerblue}
+        \textcolor{white}{\textbf{Parametar}} & 
+        \textcolor{white}{\textbf{Simbol}} & 
+        \textcolor{white}{\textbf{Fiziološko značenje}} & 
+        \textcolor{white}{\textbf{Jedinica}} & 
+        \textcolor{white}{\textbf{Tipična vr.}} \\
+        \midrule
+        Periferni otpor & $R$ (ili $R_2$) & Otpor malih arterija i kapilara protoku krvi & mmHg$\cdot$s/mL & 0,8--1,2 \\
+        \rowcolor{rowalt}
+        Karakt.\ impedansa & $R_1$ & Otpor aorte i velikih arterija (samo u 3-elem.) & mmHg$\cdot$s/mL & 0,03--0,1 \\
+        Art.\ elastičnost & $C$ & Sposobnost arterija da akumuliraju krv (komplijansa) & mL/mmHg & 1,0--2,0 \\
+        \rowcolor{rowalt}
+        Ulazni protok & $Q_{in}(t)$ & Protok krvi iz leve komore u aortu & mL/s & 0--500 (pulsno) \\
+        Art.\ pritisak & $P(t)$ & Pritisak u arterijama & mmHg & 80--120 \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+% Primedba 1: dimenzionalna analiza
+Možemo proveriti dimenzionalnu konzistentnost osnovne jednačine modela. Jednačina glasi $C \cdot \frac{dP}{dt} + \frac{P}{R} = Q_{in}(t)$. Analiziramo svaki član:
+\begin{itemize}
+    \item Leva strana: $C \cdot \frac{dP}{dt}$ ima jedinicu $\frac{\text{mL}}{\text{mmHg}} \cdot \frac{\text{mmHg}}{\text{s}} = \frac{\text{mL}}{\text{s}}$
+    \item Član $\frac{P}{R}$ ima jedinicu $\frac{\text{mmHg}}{\text{mmHg} \cdot \text{s/mL}} = \frac{\text{mL}}{\text{s}}$
+    \item Desna strana: $Q_{in}$ je u mL/s
+\end{itemize}
+Sve tri veličine imaju istu jedinicu --- dimenzije se slažu.
+
+U literaturi se najčešće izdvajaju dva osnovna tipa Windkessel modela: dvoelementni (sa parametrima $R$ i $C$) i troelementni (koji dodaje $R_1$). U narednim poglavljima detaljno ćemo opisati oba modela, uključujući formiranje jednačina (korak~1) i analizu rešenja (korak~2). Provera oba modela biće objedinjena u poglavlju o numeričkim simulacijama.
+
+
+% ══════════════════════════════════════════════════════════════
+% 3.1. DVOELEMENTNI MODEL
+% ══════════════════════════════════════════════════════════════
+\subsection{Dvoelementni (2-elementni) Windkessel model}
+
+\subsubsection{Korak 1: Formiranje modela}
+
+U dvoelementnom modelu razmatramo dve osnovne komponente: periferni vaskularni otpor $R$ (mmHg$\cdot$s/mL), koji predstavlja otpor malih arterija i kapilara --- u električnoj analogiji odgovara otporniku; i arterijsku elastičnost $C$ (mL/mmHg), koja predstavlja sposobnost velikih arterija da akumuliraju krv --- u električnoj analogiji odgovara kondenzatoru.
+
+% TODO: Ubaciti dijagram električnog kola za 2-elementni model
+% \begin{figure}[H]
+%     \centering
+%     \includegraphics[width=0.7\textwidth]{slike/circuit_2elem.png}
+%     \caption{Električni ekvivalent dvoelementnog Windkessel modela}
+%     \label{fig:circuit_2elem}
+% \end{figure}
+
+Srce posmatramo kao izvor struje $Q_{in}(t)$ (mL/s). Ovaj protok se grana u dva paralelna puta: kroz kondenzator $C$ i kroz otpornik $R$. Za pritisak $P(t)$ (mmHg) koji vlada na paralelnoj grani važi:
+
+\begin{itemize}
+    \item Za kapacitivnost: $Q_C(t) = C \cdot \frac{dP}{dt}$ --- promena pritiska zavisi od toga koliko krvi arterije akumuliraju.
+    \item Za otpornik: $Q_R(t) = \frac{P}{R}$ --- deo protoka koji trenutno odlazi kroz periferiju.
+\end{itemize}
+
+Prema zakonu kontinuiteta protoka (analogno Kirhofovom zakonu za struje):
+\begin{equation}
+    Q_{in}(t) = Q_C(t) + Q_R(t) = C \frac{dP}{dt} + \frac{P}{R}
+    \label{eq:2elem_basic}
+\end{equation}
+
+Preuređivanjem dobijamo diferencijalnu jednačinu prvog reda za arterijski pritisak:
+\begin{equation}
+    \boxed{\frac{dP}{dt} = \frac{1}{C} \left( Q_{in}(t) - \frac{P}{R} \right)}
+    \label{eq:2elem_ode}
+\end{equation}
+
+Ovim je formiranje modela završeno --- zapisali smo jednačinu koja opisuje sistem.
+
+% Primedba 4: rešenje prebačeno ovde, sa početnim uslovom
+\subsubsection{Korak 2: Analiza modela}
+
+Sada prelazimo na analizu dobijene jednačine. Rešavamo \textbf{početni problem} (Cauchy-jev problem): datu diferencijalnu jednačinu~\eqref{eq:2elem_ode} sa početnim uslovom:
+\begin{equation}
+    P(0) = P_0
+\end{equation}
+gde je $P_0$ početni arterijski pritisak (mmHg).
+
+\paragraph{Homogeno rešenje.}
+Postavljamo $Q_{in}(t) = 0$ (dijastola, srce ne pumpa):
+\begin{equation}
+    C \frac{dP}{dt} + \frac{P}{R} = 0 \quad \Longrightarrow \quad \frac{dP}{P} = -\frac{dt}{RC}
+\end{equation}
+
+Integracijom dobijamo:
+\begin{equation}
+    P_h(t) = P_0 \cdot e^{-t/(RC)}
+    \label{eq:homogeneous}
+\end{equation}
+
+Ovo opisuje eksponencijalni pad pritiska u dijastoli, što se i u praksi zapaža. Proizvod $\tau = R \cdot C$ (s) je \textbf{vremenska konstanta} sistema --- za tipične vrednosti $R = 1$~mmHg$\cdot$s/mL i $C = 1{,}5$~mL/mmHg, dobijamo $\tau = 1{,}5$~s.
+
+% Primedba 8: eksplicitno pokazan postupak
+\paragraph{Partikularno rešenje.}
+Za konstantan ulazni protok $Q_{in} = \text{const}$, tražimo stacionarno rešenje gde se pritisak ne menja: $\frac{dP}{dt} = 0$. Iz jednačine~\eqref{eq:2elem_ode}:
+\begin{equation}
+    0 = \frac{1}{C} \left( Q_{in} - \frac{P_p}{R} \right) \quad \Longrightarrow \quad P_p = Q_{in} \cdot R
+    \label{eq:particular}
+\end{equation}
+
+Na primer, za $Q_{in} = 100$~mL/s i $R = 1$~mmHg$\cdot$s/mL, dobijamo stacionarni pritisak $P_p = 100$~mmHg. Dimenzionalna provera: (mL/s)$\cdot$(mmHg$\cdot$s/mL) = mmHg~$\checkmark$
+
+\paragraph{Opšte rešenje} početnog problema je zbir homogenog i partikularnog dela:
+\begin{equation}
+    \boxed{P(t) = Q_{in} \cdot R + \left( P_0 - Q_{in} \cdot R \right) \cdot e^{-t/(RC)}}
+    \label{eq:general_solution}
+\end{equation}
+
+Za $t \to \infty$, eksponencijalni član nestaje i pritisak teži ka stacionarnoj vrednosti $P = Q_{in} \cdot R$. Brzina konvergencije zavisi od vremenske konstante $\tau = RC$: veće $\tau$ znači sporije opadanje, a manje $\tau$ znači brži pad ka ravnoteži.
+
+\paragraph{Fiziološko tumačenje parametara.}
+Smanjenje kapacitivnosti $C$ (gubitak elastičnosti arterija usled starenja ili ateroskleroze) dovodi do bržeg opadanja pritiska tokom dijastole i smanjenog Windkessel efekta --- povećava se pulsni pritisak. Povećanje perifernog otpora $R$ rezultira višim srednjim arterijskim pritiskom, što je karakteristično za hipertenziju.
+
+
+% ══════════════════════════════════════════════════════════════
+% 3.2. TROELEMENTNI MODEL
+% ══════════════════════════════════════════════════════════════
+\subsection{Troelementni (3-elementni) Windkessel model}
+
+\subsubsection{Korak 1: Formiranje modela}
+
+Dvoelementni model dobro opisuje eksponencijalni pad pritiska u dijastoli, ali ne može da prikaže nagli porast pritiska na početku sistole, koji se zapaža u eksperimentalnim merenjima. Troelementni model prevazilazi ovo ograničenje uvođenjem dodatnog otpora $R_1$ (mmHg$\cdot$s/mL) u seriji sa paralelnom $RC$ granom. Ovaj otpor predstavlja karakterističnu impedansu aorte i velikih arterija.
+
+% TODO: Ubaciti dijagram električnog kola za 3-elementni model
+% \begin{figure}[H]
+%     \centering
+%     \includegraphics[width=0.8\textwidth]{slike/circuit_3elem.png}
+%     \caption{Električni ekvivalent troelementnog Windkessel modela}
+%     \label{fig:circuit_3elem}
+% \end{figure}
+
+Diferencijalna jednačina za pritisak $P(t)$ na paralelnoj $RC$ grani ostaje ista kao u dvoelementnom modelu:
+\begin{equation}
+    C \frac{dP}{dt} + \frac{P}{R_2} = Q_{in}(t)
+    \label{eq:3elem_ode}
+\end{equation}
+
+Razlika je u tome što mereni aortni pritisak $P_a(t)$ uključuje i pad napona na serijskom otporu $R_1$:
+\begin{equation}
+    \boxed{P_a(t) = P(t) + R_1 \cdot Q_{in}(t)}
+    \label{eq:Pa}
+\end{equation}
+
+% Primedba 9: jasno definisano Q vs Qin
+\paragraph{Napomena o oznakama.} U celom radu $Q_{in}(t)$ označava ulazni protok krvi iz srca u aortu. U nekim izvorima se koristi samo $Q(t)$ --- to je ista veličina. U ovom radu dosledno koristimo $Q_{in}(t)$ da bismo izbegli zabunu.
+
+\subsubsection{Korak 2: Analiza modela}
+
+Jednačina za $P(t)$ ima isti oblik kao u dvoelementnom modelu (sa $R_2$ umesto $R$), pa su i rešenja analogna:
+
+\textbf{Homogeno rešenje} (dijastola, $Q_{in} = 0$):
+\begin{equation}
+    P_h(t) = P_0 \cdot e^{-t/(R_2 C)}
+\end{equation}
+
+\textbf{Partikularno rešenje} (konstantan $Q_{in}$):
+\begin{equation}
+    P_p = Q_{in} \cdot R_2
+\end{equation}
+
+% Primedba 9: poređenje rešenja
+\paragraph{Poređenje rešenja.} Sumirajmo tri ključne veličine:
+\begin{itemize}
+    \item $P(t)$ --- pritisak na paralelnoj $RC$ grani (\textbf{distalni pritisak}). Rešava se iz diferencijalne jednačine~\eqref{eq:3elem_ode}.
+    \item $P_a(t) = P(t) + R_1 \cdot Q_{in}(t)$ --- mereni \textbf{aortni pritisak}. Član $R_1 \cdot Q_{in}$ dodaje nagli porast pri sistoli.
+    \item $P_{RC}(t)$ --- rešenje dvoelementnog modela (bez $R_1$). Ekvivalentno je $P(t)$ iz troelementnog modela --- ista jednačina, isti oblik rešenja.
+\end{itemize}
+
+Ključna razlika: u dvoelementnom modelu $P(t)$ je ujedno i mereni pritisak. U troelementnom modelu $P(t)$ je samo pritisak na $RC$ grani, dok mereni aortni pritisak $P_a(t)$ uključuje i doprinos $R_1 \cdot Q_{in}(t)$, koji je proporcionalan ulaznom protoku i omogućava brz porast pritiska tokom sistole.
+
+% Primedba 11: šta je distalni pritisak
+\paragraph{Šta je distalni pritisak?}
+Distalni pritisak $P(t)$ je pritisak koji bi se merio dalje od aorte, u manjim arterijama posle proksimalnog otpora $R_1$. Na graficima simulacija, $P(t)$ prikazuje glatkiji tok nego $P_a(t)$, jer ne sadrži član $R_1 \cdot Q_{in}$ koji daje oštre vrhove tokom sistole.
+
+I troelementni model ima ograničenja --- ne opisuje u potpunosti refleksije talasa i složene delove hemodinamike, koji zahtevaju distribuirane modele. Ipak, zbog svoje jednostavnosti i dobrog slaganja sa merenjima, ovaj model se široko koristi kao kompromis između matematičke složenosti i fiziološke tačnosti.
+
+
+% ══════════════════════════════════════════════════════════════
+% 4. NUMERIČKE SIMULACIJE
+% ══════════════════════════════════════════════════════════════
+\section{Numeričke simulacije i provera modela}
+
+% Primedba 6: objedinjena provera
+U ovom poglavlju prikazujemo numeričke simulacije oba Windkessel modela i vršimo proveru rezultata (korak~3 modeliranja). Simulacije su izvedene u Pythonu pomoću biblioteka NumPy i Matplotlib. Koriste se dve numeričke metode za rešavanje diferencijalnih jednačina: Euler-ova metoda i Runge-Kutta metoda četvrtog reda (RK4).
+
+% Primedba 13: objašnjenje razlike metoda
+\textbf{Euler-ova metoda} je najjednostavnija numerička metoda: za svaki vremenski korak $\Delta t$, ažurira rešenje prema formuli:
+\begin{equation}
+    P[i+1] = P[i] + \frac{dP}{dt}\bigg|_i \cdot \Delta t
+\end{equation}
+Jednostavna je za implementaciju, ali je prvog reda tačnosti --- greška je proporcionalna koraku $\Delta t$.
+
+\textbf{Runge-Kutta 4.\ reda (RK4)} koristi četiri procene nagiba u svakom koraku i njihovu ponderisanu sredinu:
+\begin{equation}
+    P[i+1] = P[i] + \frac{\Delta t}{6}(k_1 + 2k_2 + 2k_3 + k_4)
+\end{equation}
+gde su $k_1, k_2, k_3, k_4$ procene nagiba na početku, sredini i kraju intervala. Ima četvrti red tačnosti --- greška je proporcionalna $\Delta t^4$, što daje znatno tačnije rezultate.
+
+% Primedba 12: simulacija dvoelementnog modela
+\subsection{Simulacija dvoelementnog modela}
+
+Za dvoelementni model koristimo parametre $R = 1{,}0$~mmHg$\cdot$s/mL i $C = 1{,}5$~mL/mmHg (tj.\ $C = 1{,}5 \cdot 10^{-3}$~L/mmHg), sa početnim uslovom $P(0) = 80$~mmHg. Ulazni protok modelujemo kao pulsnu sinusnu funkciju sa frekvencijom $f = 1$~Hz (60 otkucaja/min).
+
+\begin{lstlisting}[caption={Simulacija dvoelementnog Windkessel modela (Euler-ova metoda)}]
+import numpy as np
+import matplotlib.pyplot as plt
+
+# Parametri
+C = 1.5e-3      # mL/mmHg -> L/mmHg
+R = 1.0         # mmHg*s/mL
+f = 1.0         # Hz (srcani ritam ~60/min)
+A = 80.0        # amplituda protoka (mL/s)
+Q0 = 20.0       # bazni protok (mL/s)
+dt = 0.001      # vremenski korak (s)
+tmax = 4.0      # trajanje simulacije (s)
+
+t = np.arange(0, tmax, dt)
+Qin = Q0 + A * np.maximum(0, np.sin(2 * np.pi * f * t))
+
+# Euler-ova metoda
+P = np.zeros_like(t)
+P[0] = 80.0     # pocetni uslov P(0) = 80 mmHg
+
+for i in range(1, len(t)):
+    dPdt = (1/C) * (Qin[i-1] - P[i-1]/R)
+    P[i] = P[i-1] + dPdt * dt
+\end{lstlisting}
+
+% TODO: Ubaciti grafik simulacije 2-elem modela
+% \begin{figure}[H]
+%     \centering
+%     \includegraphics[width=0.85\textwidth]{slike/sim_2elem.png}
+%     \caption{Simulacija dvoelementnog Windkessel modela}
+%     \label{fig:sim_2elem}
+% \end{figure}
+
+Na grafiku se vidi kako pritisak $P(t)$ prati pulsni karakter ulaznog protoka. Tokom sistole pritisak raste, a tokom dijastole opada eksponencijalno --- u skladu sa analitičkim rešenjem. Kriva pritiska u dvoelementnom modelu nema oštar porast na početku sistole, već blago prati sinusni oblik protoka.
+
+
+\subsection{Simulacija troelementnog modela}
+
+Za troelementni model dodajemo $R_1 = 0{,}05$~mmHg$\cdot$s/mL, dok $R_2 = 1{,}0$ i $C = 1{,}5$~mL/mmHg ostaju isti. Koristimo RK4 metodu sa korakom $\Delta t = 0{,}001$~s.
+
+\begin{lstlisting}[caption={Simulacija troelementnog modela (RK4 metoda)}]
+# Parametri
+C = 1.5e-3      # L/mmHg
+R2 = 1.0        # mmHg*s/mL (periferni otpor)
+R1 = 0.05       # mmHg*s/mL (karakteristicna impedansa)
+f = 1.0         # Hz
+A = 80.0        # mL/s
+Q0 = 20.0       # mL/s
+dt = 0.001
+tmax = 4.0
+
+t = np.arange(0, tmax, dt)
+Qin = Q0 + A * np.maximum(0, np.sin(2*np.pi*f*t))
+
+def dPdt(P, Qin_t):
+    return (Qin_t - P / R2) / C
+
+# RK4 integrator
+P = np.zeros_like(t)
+P[0] = 80.0
+
+for i in range(len(t)-1):
+    Pi = P[i]
+    q = Qin[i]
+    k1 = dPdt(Pi, q)
+    k2 = dPdt(Pi + 0.5*dt*k1, q)
+    k3 = dPdt(Pi + 0.5*dt*k2, q)
+    k4 = dPdt(Pi + dt*k3, q)
+    P[i+1] = Pi + dt*(k1 + 2*k2 + 2*k3 + k4)/6.0
+
+# Mereni aortni pritisak
+Pa = P + R1 * Qin
+\end{lstlisting}
+
+% TODO: Ubaciti grafik simulacije 3-elem modela
+% \begin{figure}[H]
+%     \centering
+%     \includegraphics[width=0.85\textwidth]{slike/sim_3elem.png}
+%     \caption{Simulacija troelementnog Windkessel modela (RK4)}
+%     \label{fig:sim_3elem}
+% \end{figure}
+
+Na grafiku se razlikuju dve krive: aortni pritisak $P_a(t)$ (plava linija) pokazuje oštrije vrhove tokom sistole zahvaljujući članu $R_1 \cdot Q_{in}$, dok distalni pritisak $P(t)$ (isprekidana linija) ima glatkiji tok jer predstavlja pritisak na $RC$ grani bez uticaja proksimalnog otpora.
+
+
+% Primedba 10: validacija sa konstantnim Qin
+\subsection{Validacija: konstantan ulazni protok}
+
+Da bismo potvrdili ispravnost numeričke implementacije, poredimo numeričko rešenje sa analitičkim za slučaj konstantnog ulaznog protoka $Q_{in} = 100$~mL/s. Analitičko rešenje iz jednačine~\eqref{eq:general_solution} glasi:
+\begin{equation}
+    P(t) = Q_{in} \cdot R + (P_0 - Q_{in} \cdot R) \cdot e^{-t/(RC)}
+\end{equation}
+
+Za $P_0 = 80$~mmHg, $Q_{in} = 100$~mL/s i $R = 1$~mmHg$\cdot$s/mL, stacionarna vrednost je $P = 100$~mmHg, a sistem teži ka njoj sa vremenskom konstantom $\tau = RC = 1{,}5 \cdot 10^{-3}$~s.
+
+\begin{lstlisting}[caption={Validacija: poređenje numeričkog i analitičkog rešenja}]
+Qin_const = 100.0   # mL/s (konstantan protok)
+P0 = 80.0            # mmHg
+
+# Analiticko resenje
+P_steady = Qin_const * R   # = 100 mmHg
+tau = R * C                 # vremenska konstanta
+P_analytical = P_steady + (P0 - P_steady) * np.exp(-t / tau)
+
+# Numericko resenje (Euler)
+P_euler = np.zeros_like(t)
+P_euler[0] = P0
+for i in range(1, len(t)):
+    dPdt = (1/C) * (Qin_const - P_euler[i-1]/R)
+    P_euler[i] = P_euler[i-1] + dPdt * dt
+
+# Greska
+error = np.abs(P_analytical - P_euler)
+\end{lstlisting}
+
+% TODO: Ubaciti grafik konstantan Qin
+% \begin{figure}[H]
+%     \centering
+%     \includegraphics[width=0.85\textwidth]{slike/sim_constant_qin.png}
+%     \caption{Poređenje numeričkog i analitičkog rešenja za konstantan $Q_{in}$}
+%     \label{fig:sim_const}
+% \end{figure}
+
+Gornji grafik pokazuje da se numeričko rešenje (Euler-ova metoda) praktično poklapa sa analitičkim rešenjem. Donji grafik prikazuje apsolutnu grešku --- reda veličine $10^{-3}$~mmHg, što potvrđuje ispravnost implementacije.
+
+
+% Primedba 13: razlika između simulacija
+\subsection{Poređenje dvoelementnog i troelementnog modela}
+
+% TODO: Ubaciti grafik poređenja
+% \begin{figure}[H]
+%     \centering
+%     \includegraphics[width=0.85\textwidth]{slike/sim_comparison.png}
+%     \caption{Poređenje 2-elementnog i 3-elementnog Windkessel modela}
+%     \label{fig:comparison}
+% \end{figure}
+
+Na grafiku je jasno vidljiva razlika između dva modela. Dvoelementni model (narandžasta linija) daje glatku krivu pritiska bez oštrog porasta na početku sistole. Troelementni model (plava linija) zahvaljujući članu $R_1 \cdot Q_{in}$ prikazuje oštrije vrhove koji bolje odgovaraju eksperimentalno izmerenim krivama arterijskog pritiska. Razlika je najizraženija na početku sistole, gde troelementni model hvata nagli porast pritiska koji dvoelementni ne može da reprodukuje.
+
+
+\subsection{Analiza osetljivosti parametara}
+
+% TODO: Ubaciti grafik osetljivosti
+% \begin{figure}[H]
+%     \centering
+%     \includegraphics[width=\textwidth]{slike/sensitivity.png}
+%     \caption{Uticaj promene parametara $C$ (levo) i $R$ (desno) na arterijski pritisak}
+%     \label{fig:sensitivity}
+% \end{figure}
+
+Levi grafik pokazuje uticaj elastičnosti arterija ($C$). Smanjena elastičnost ($C = 0{,}5$~mL/mmHg --- npr.\ usled starenja ili ateroskleroze) dovodi do većih oscilacija pritiska: viši sistolni i niži dijastolni pritisak, dakle veći pulsni pritisak. Povećana elastičnost ($C = 3{,}0$~mL/mmHg) ublažava oscilacije.
+
+Desni grafik pokazuje uticaj perifernog otpora ($R$). Povećan otpor ($R = 2{,}0$ --- karakteristično za hipertenziju) podiže celu krivu pritiska naviše. Smanjen otpor ($R = 0{,}5$) snižava srednji pritisak. Ovo je u skladu sa kliničkim opservacijama: hipertenzija je često posledica povećanog perifernog otpora.
+
+
+% ══════════════════════════════════════════════════════════════
+% 5. ZAKLJUČAK
+% ══════════════════════════════════════════════════════════════
+\section{Zaključak}
+
+U ovom radu prikazani su osnovni principi matematičkog modeliranja arterijskog pritiska korišćenjem Windkessel modela. Na primeru dvoelementnog modela ilustrovano je kako se kapacitivnost i periferni otpor mogu predstaviti diferencijalnom jednačinom prvog reda koja opisuje eksponencijalni pad pritiska u dijastoli. Rešenje početnog problema potvrđeno je numeričkom simulacijom sa konstantnim ulaznim protokom.
+
+Troelementni model, uvođenjem karakterističnog otpora $R_1$ u seriji sa paralelnom $RC$ granom, omogućava realističnije prikazivanje sistoličkog porasta pritiska i razlikovanje između aortnog (proksimalnog) i distalnog pritiska. Numeričke simulacije sprovedene Euler-ovom i Runge-Kutta metodom potvrdile su da oba modela uspešno reprodukuju osnovnu dinamiku arterijskog sistema.
+
+Analiza osetljivosti parametara demonstrirala je fiziološki značaj modela: smanjena elastičnost arterija (niže $C$) povećava pulsni pritisak, dok povećan periferni otpor (više $R$) podiže srednji arterijski pritisak --- u skladu sa kliničkim opservacijama kod starenja i hipertenzije.
+
+Iako distribuirani modeli mogu preciznije opisati propagaciju pulsnog talasa i ulaznu impedansu, oni su složeniji i zahtevaju mnogo vremena za identifikaciju parametara. Windkessel modeli, posebno troelementni, ostaju široko korišćeni u istraživanjima i obrazovanju kao kompromis između jednostavnosti i fiziološke tačnosti.
+
+
+% ══════════════════════════════════════════════════════════════
+% LITERATURA
+% ══════════════════════════════════════════════════════════════
+\newpage
+\begin{thebibliography}{9}
+
+\bibitem{boyce}
+Boyce, W.~E., \& DiPrima, R.~C.
+\textit{Elementary Differential Equations and Boundary Value Problems.}
+9th ed., John Wiley \& Sons, 2009.
+
+\bibitem{frank}
+Frank, O.
+``Die Grundform des Arteriellen Pulses.''
+\textit{Zeitschrift für Biologie}, 37, 483--526, 1899.
+
+\bibitem{westerhof}
+Westerhof, N., Lankhaar, J.W., Westerhof, B.E.
+``The arterial Windkessel.''
+\textit{Med Biol Eng Comput}, 47, 131--141, 2009.
+
+\bibitem{srcani_ciklus}
+\url{http://studije.med.bg.ac.rs/wp-content/uploads/2019/11/SEMINAR-Srcani-ciklus-.pdf}
+
+\bibitem{minutni_volumen}
+\url{http://studije.med.bg.ac.rs/wp-content/uploads/2019/11/SEMINAR-Minutni-volumen-srca-i-njegova-regulac.pdf}
+
+\bibitem{uc3m}
+\url{https://e-archivo.uc3m.es/rest/api/core/bitstreams/d953f482-9a05-45ae-93ab-57851f0e760c/content}
+
+\bibitem{ucsd}
+\url{https://isn.ucsd.edu/courses/beng122a/project/2023/reports/SB_SL_AL_LN_NS.pdf}
+
+\bibitem{hlavac}
+\url{https://www.ecmosimulation.com/data/Hlavac.pdf}
+
+\end{thebibliography}
+
+\end{document}
