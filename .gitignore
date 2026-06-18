@@ -1,9 +1,19 @@
+# LaTeX
+*.aux
+*.log
+*.out
+*.toc
+*.synctex.gz
+*.fls
+*.fdb_latexmk
+*.bbl
+*.blg
+
+# Python
 __pycache__/
 *.pyc
-.ipynb_checkpoints/
-.DS_Store
-*.egg-info/
-dist/
-build/
 .venv/
 venv/
+
+# OS
+.DS_Store
